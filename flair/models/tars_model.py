@@ -354,7 +354,7 @@ class TARSTagger(FewshotClassifier):
                 layer_mean=False,
             )
         if isinstance(embeddings, StackedEmbeddings):
-            for subembedding in embeddings:
+            for subembedding in embeddings.embeddings:
                 if isinstance(subembedding, TransformerWordEmbeddings):
                     transformer = subembedding
         else:
