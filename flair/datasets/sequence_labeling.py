@@ -309,6 +309,8 @@ class ColumnDataset(FlairDataset):
         for line in lines:
             # skip comments
             if self.comment_symbol is not None and line.startswith(self.comment_symbol):
+                if line.startswith('# id '):
+                    sentence.set_label('id', line)
                 continue
 
             # if sentence ends, convert and return

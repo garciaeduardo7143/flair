@@ -15,7 +15,7 @@ from flair.datasets import DataLoader, FlairDatapointDataset
 from flair.embeddings import (
     TokenEmbeddings,
     TransformerDocumentEmbeddings,
-    TransformerWordEmbeddings,
+    TransformerWordEmbeddings, StackedEmbeddings,
 )
 from flair.file_utils import cached_path
 from flair.models.sequence_tagger_model import SequenceTagger
@@ -353,6 +353,12 @@ class TARSTagger(FewshotClassifier):
                 layers="-1",
                 layer_mean=False,
             )
+        if isinstance(embeddings, StackedEmbeddings):
+            for subembedding in embeddings:
+                if isinstance(subembedding, TransformerWordEmbeddings):
+                    transformer = subembedding
+        else:
+            transformer = embeddings
 
         # prepare TARS dictionary
         tars_dictionary = Dictionary(add_unk=False)
@@ -375,9 +381,9 @@ class TARSTagger(FewshotClassifier):
         )
 
         # transformer separator
-        self.separator = str(self.tars_embeddings.tokenizer.sep_token)
-        if self.tars_embeddings.tokenizer._bos_token:
-            self.separator += str(self.tars_embeddings.tokenizer.bos_token)
+        self.separator = str(transformer.tokenizer.sep_token)
+        if transformer.tokenizer._bos_token:
+            self.separator += str(transformer.tokenizer.bos_token)
 
         self.prefix = prefix
         self.num_negative_labels_to_sample = num_negative_labels_to_sample
