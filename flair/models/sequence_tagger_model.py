@@ -460,7 +460,7 @@ class SequenceTagger(flair.nn.Classifier[Sentence]):
                     for (token, token_all_tags) in zip(sentence.tokens, sent_all_tags):
                         token.add_tags_proba_dist(label_name, token_all_tags)
 
-            store_embeddings(sentences, storage_mode=embedding_storage_mode)
+                store_embeddings(batch, storage_mode=embedding_storage_mode)
 
             if return_loss:
                 return overall_loss, label_count
