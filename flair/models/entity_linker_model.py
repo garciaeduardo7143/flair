@@ -91,27 +91,43 @@ class EntityLinker(flair.nn.DefaultClassifier[Sentence]):
             self.word_embeddings.embed(filtered_sentences)
             embedding_names = self.word_embeddings.get_names()
 
-            # all entity mentions in mini batch
+            embedding_list = []
+
+            # get all entities in mini-batch
             entity_mentions = [label for sentence in filtered_sentences for label in sentence.get_labels(self.label_type)]
 
-            # get labels of all mentions
-            span_labels = [[entity.value] for entity in entity_mentions]
+            # get label and embedding of each entity
+            for entity in entity_mentions:
 
-            # get all embeddings
-            embedding_list = [entity.span.tokens[0].get_embedding(embedding_names).unsqueeze(0)
-                              for entity in entity_mentions]
+                span_labels.append([entity.value])
+
+                if self.pooling_operation == "first":
+                    mention_emb = entity.span.tokens[0].get_embedding(embedding_names)
+
+                if self.pooling_operation == "first&last":
+                    mention_emb = torch.cat(
+                        (
+                            entity.span.tokens[0].get_embedding(embedding_names),
+                            entity.span.tokens[-1].get_embedding(embedding_names),
+                        ),
+                        0,
+                    )
+                embedding_list.append(mention_emb.unsqueeze(0))
+
+                if return_label_candidates:
+                    sentences_to_spans.append(sentence)
+                    candidate = SpanLabel(span=entity.span, value=None, score=0.0)
+                    empty_label_candidates.append(candidate)
+
             if len(embedding_list) > 0:
-                embedding_tensor = torch.cat(embedding_list, 0).to(flair.device)
+                embedding_tensor = torch.cat(embedding_list, 0)
+
                 if self.use_dropout:
                     embedding_tensor = self.dropout(embedding_tensor)
 
                 scores = self.decoder(embedding_tensor)
             else:
                 scores = None
-
-            if return_label_candidates:
-                sentences_to_spans = [entity.span[0].sentence for entity in entity_mentions]
-                empty_label_candidates = [SpanLabel(span=entity.span, value=None, score=0.0) for entity in entity_mentions]
 
         if return_label_candidates:
             return scores, span_labels, sentences_to_spans, empty_label_candidates
