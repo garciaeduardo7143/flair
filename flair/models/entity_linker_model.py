@@ -24,10 +24,9 @@ class EntityLinker(flair.nn.DefaultClassifier[Sentence]):
         self,
         word_embeddings: flair.embeddings.TokenEmbeddings,
         label_dictionary: Dictionary,
-        pooling_operation: str = "first&last",
+        pooling_operation: str = "first",
         label_type: str = "nel",
         dropout: float = 0.5,
-        skip_unk_probability: Optional[float] = None,
         **classifierargs,
     ):
         """
@@ -45,9 +44,6 @@ class EntityLinker(flair.nn.DefaultClassifier[Sentence]):
         self.word_embeddings = word_embeddings
         self.pooling_operation = pooling_operation
         self._label_type = label_type
-        self.skip_unk_probability = skip_unk_probability
-        if self.skip_unk_probability:
-            self.known_entities = label_dictionary.get_items()
 
         # ----- Dropout parameters -----
         # dropouts
@@ -57,39 +53,13 @@ class EntityLinker(flair.nn.DefaultClassifier[Sentence]):
 
         # if we concatenate the embeddings we need double input size in our linear layer
         if self.pooling_operation == "first&last":
-            self.decoder = nn.Linear(2 * self.word_embeddings.embedding_length, len(self.label_dictionary)).to(
-                flair.device
-            )
+            self.decoder = nn.Linear(2 * self.word_embeddings.embedding_length, len(self.label_dictionary))
         else:
-            self.decoder = nn.Linear(self.word_embeddings.embedding_length, len(self.label_dictionary)).to(flair.device)
+            self.decoder = nn.Linear(self.word_embeddings.embedding_length, len(self.label_dictionary))
 
         nn.init.xavier_uniform_(self.decoder.weight)
 
-        cases = {
-            "average": self.emb_mean,
-            "first": self.emb_first,
-            "last": self.emb_last,
-            "first&last": self.emb_firstAndLast,
-        }
-
-        if pooling_operation not in cases:
-            raise KeyError('pooling_operation has to be one of "average", "first", "last" or "first&last"')
-
-        self.aggregated_embedding = cases[pooling_operation]
-
         self.to(flair.device)
-
-    def emb_first(self, arg):
-        return arg[0]
-
-    def emb_last(self, arg):
-        return arg[-1]
-
-    def emb_firstAndLast(self, arg):
-        return torch.cat((arg[0], arg[-1]), 0)
-
-    def emb_mean(self, arg):
-        return torch.mean(arg, 0)
 
     def forward_pass(
         self,
@@ -129,12 +99,10 @@ class EntityLinker(flair.nn.DefaultClassifier[Sentence]):
 
                 for entity in entities:
 
-                    if self.skip_unk_probability and self.training and entity.value not in self.known_entities:
-                        sample = random.uniform(0, 1)
-                        if sample < self.skip_unk_probability:
-                            continue
-
                     span_labels.append([entity.value])
+
+                    if self.pooling_operation == "first":
+                        mention_emb = entity.span.tokens[0].get_embedding(embedding_names)
 
                     if self.pooling_operation == "first&last":
                         mention_emb = torch.cat(
