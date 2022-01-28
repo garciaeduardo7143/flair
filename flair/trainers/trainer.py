@@ -466,10 +466,7 @@ class ModelTrainer:
                 average_over = 0
                 for batch_no, batch in enumerate(batch_loader):
 
-                    print('----')
-                    print(batch)
                     batch = augmentation.augment(batch)
-                    print(batch)
 
                     start_time = time.time()
 
