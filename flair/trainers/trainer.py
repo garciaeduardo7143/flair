@@ -122,6 +122,7 @@ class ModelTrainer:
         optimizer_state_dict: Optional[Dict[str, Any]] = None,
         scheduler_state_dict: Optional[Dict[str, Any]] = None,
         save_optimizer_state: bool = False,
+        augmentation = None,
         **kwargs,
     ) -> dict:
         """
@@ -464,6 +465,11 @@ class ModelTrainer:
                 batch_time = 0.0
                 average_over = 0
                 for batch_no, batch in enumerate(batch_loader):
+
+                    print('----')
+                    print(batch)
+                    batch = augmentation.augment(batch)
+                    print(batch)
 
                     start_time = time.time()
 

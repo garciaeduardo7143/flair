@@ -679,7 +679,7 @@ class Sentence(DataPoint):
                 return token
         return None
 
-    def add_token(self, token: Union[Token, str]):
+    def add_token(self, token: Union[Token, str], force_increment: bool = False):
 
         if type(token) is str:
             token = Token(token)
@@ -698,7 +698,7 @@ class Sentence(DataPoint):
 
         # set token idx if not set
         token.sentence = self
-        if token.idx is None:
+        if token.idx is None or force_increment:
             token.idx = len(self.tokens)
 
     def get_label_names(self):
