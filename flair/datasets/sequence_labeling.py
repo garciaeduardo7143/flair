@@ -394,7 +394,8 @@ class ColumnDataset(FlairDataset):
         for line in lines:
             # parse comments if possible
             if self.comment_symbol is not None and line.startswith(self.comment_symbol):
-                comments.append(line)
+                if line.startswith('# id '):
+                    sentence.set_label('id', line)
                 continue
 
             filtered_lines.append(line)
